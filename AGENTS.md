@@ -2,7 +2,7 @@
 
 > This file is the operating manual for any automated coding agent working in this repository. It is also a **living document**. You (the agent) must update sections 5, 6, 7 and 8 at the end of every step. Humans can read it too: it's the fastest way to see where the project stands.
 
-**Last updated:** 2026-10-19 · **Current step:** 0 (Project setup) · **Current phase:** A (Design)
+**Last updated:** 2026-11-04 · **Current step:** 0 (Project setup), with Step 2 (ER diagram) started early · **Current phase:** A (Design)
 
 ---
 
@@ -89,8 +89,8 @@ Update this table at the end of every step. Status values: ⬜ Not started · �
 | — | PRD, architecture, workflow, this manual | ✅ | 2026-10-19 | docs/PRD.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md |
 | 0 | Project setup | ⬜ | | |
 | 1 | Data requirement spec | ⬜ | | The entity + attribute list is drafted in ARCHITECTURE §6.2 |
-| 2 | ER diagram | ⬜ | | Tool not chosen yet (OQ1) |
-| 3 | Mapping + 3NF | ⬜ | | |
+| 2 | ER diagram | 🟡 | 2026-11-05 | Diagram verified: docs/er/er-conceptual.png (full: 7 entities, 8 relationships) + docs/er/er-drawable.png (hand-drawable: 5 entities, 6 relationships, skips BENEFIT and BODY_PART). Hand-drawn copy pending. |
+| 3 | Mapping + 3NF | ⬜ | | The schema notes were drafted and then removed by the team. Redo them here: mapping, relational schema, functional dependencies, 3NF. |
 | 🚦 A | Design gate | ⬜ | | |
 | 4 | Postgres schema | ⬜ | | |
 | 5 | Mongo schema | ⬜ | | |
@@ -115,6 +115,9 @@ Append-only. One row per meaningful change: what changed, where, and why. This f
 | 2026-10-18 | Design | Entity list cut from 21+ tables to 16 MVP tables + 2 collections. The rest moved to the phase 2 backlog. | docs/ARCHITECTURE.md §6, §13 | Keep the MVP small and the ER readable |
 | 2026-10-19 | Design | PRD, architecture (arc42 + C4 + ADRs), workflow and agent manual written | docs/*, AGENTS.md, README.md | Full plan before any code |
 | 2026-10-19 | Design | PostgreSQL reconfirmed as the only relational database (no MySQL/Oracle alternative) | — | Team decision |
+| 2026-11-04 | 2 | Minimal conceptual ER (Chen): 7 entities, 8 relationships, 2–3 key attributes each. Guide explains every shape, attribute type and strong vs weak entities. Corrected: language names are simple attributes, not one composite attribute. | docs/er/ER_GUIDE.md, docs/er/er-conceptual.svg | Readable hand-drawable diagram for the viva |
+| 2026-11-05 | 2–3 | Merged the ER guide and the relational schema into one doc. ER_GUIDE.md was renamed to ER_AND_SCHEMA.md. Added mapping rules, the 16-relation schema in textbook notation, a crow's-foot schema diagram (renders on GitHub), a constraints table, and a PK naming convention (`<table>_id` in the report, `id` in SQL). | docs/er/ER_AND_SCHEMA.md | Everything for the ER and the schema in one place for the report and viva |
+| 2026-11-05 | 2 | Team kept only the diagram images. ER_AND_SCHEMA.md and the SVG sources were removed. Added er-drawable.png, a smaller hand-drawable version. Step 3 is reset to not started. | docs/er/er-conceptual.png, docs/er/er-drawable.png | Keep the repo lean. Schema work moves back to Step 3. |
 
 ## 7. Open Questions and Proposals
 Add new items at the bottom. Close an item by filling in the Answer and Date, but don't delete it.
