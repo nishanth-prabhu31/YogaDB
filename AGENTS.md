@@ -2,7 +2,7 @@
 
 > This file is the operating manual for any automated coding agent working in this repository. It is also a **living document**. You (the agent) must update sections 5, 6, 7 and 8 at the end of every step. Humans can read it too: it's the fastest way to see where the project stands.
 
-**Last updated:** 2026-11-04 · **Current step:** 0 (Project setup), with Step 2 (ER diagram) started early · **Current phase:** A (Design)
+**Last updated:** 2026-11-09 · **Current step:** Waiting at Gate A (Steps 1–3 drafted; Step 0 not started) · **Current phase:** A (Design)
 
 ---
 
@@ -88,9 +88,9 @@ Update this table at the end of every step. Status values: ⬜ Not started · �
 | — | Research + stack decision | ✅ | 2026-10-18 | docs/RESEARCH.md; ADR-001, ADR-002 |
 | — | PRD, architecture, workflow, this manual | ✅ | 2026-10-19 | docs/PRD.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md |
 | 0 | Project setup | ⬜ | | |
-| 1 | Data requirement spec | ⬜ | | The entity + attribute list is drafted in ARCHITECTURE §6.2 |
-| 2 | ER diagram | 🟡 | 2026-11-05 | Diagram verified: docs/er/er-conceptual.png (full: 7 entities, 8 relationships) + docs/er/er-drawable.png (hand-drawable: 5 entities, 6 relationships, skips BENEFIT and BODY_PART). Hand-drawn copy pending. |
-| 3 | Mapping + 3NF | ⬜ | | The schema notes were drafted and then removed by the team. Redo them here: mapping, relational schema, functional dependencies, 3NF. |
+| 1 | Data requirement spec | 🟡 | 2026-11-09 | docs/data-spec.md covers all 16 tables, 8 ENUMs, 10 business rules, 2 collections and sample data. Team sign-off pending at Gate A. |
+| 2 | ER diagram | 🟡 | 2026-11-09 | docs/er/er-conceptual.png (full: 8 entities, 9 relationships), er-logical.png (crow's foot: 16 tables, 19 foreign keys), er-drawable.png (hand-drawable, reduced), editable source yoga-er.drawio. Hand-drawn copy and the team's walkthrough are pending. |
+| 3 | Mapping + 3NF | ✅ | 2026-11-09 | docs/normalization.md: mapping, UNF→3NF, FDs for all 16 tables. A script confirmed the tables and columns match across data-spec, normalization and the logical diagram. |
 | 🚦 A | Design gate | ⬜ | | |
 | 4 | Postgres schema | ⬜ | | |
 | 5 | Mongo schema | ⬜ | | |
@@ -118,16 +118,23 @@ Append-only. One row per meaningful change: what changed, where, and why. This f
 | 2026-11-04 | 2 | Minimal conceptual ER (Chen): 7 entities, 8 relationships, 2–3 key attributes each. Guide explains every shape, attribute type and strong vs weak entities. Corrected: language names are simple attributes, not one composite attribute. | docs/er/ER_GUIDE.md, docs/er/er-conceptual.svg | Readable hand-drawable diagram for the viva |
 | 2026-11-05 | 2–3 | Merged the ER guide and the relational schema into one doc. ER_GUIDE.md was renamed to ER_AND_SCHEMA.md. Added mapping rules, the 16-relation schema in textbook notation, a crow's-foot schema diagram (renders on GitHub), a constraints table, and a PK naming convention (`<table>_id` in the report, `id` in SQL). | docs/er/ER_AND_SCHEMA.md | Everything for the ER and the schema in one place for the report and viva |
 | 2026-11-05 | 2 | Team kept only the diagram images. ER_AND_SCHEMA.md and the SVG sources were removed. Added er-drawable.png, a smaller hand-drawable version. Step 3 is reset to not started. | docs/er/er-conceptual.png, docs/er/er-drawable.png | Keep the repo lean. Schema work moves back to Step 3. |
+| 2026-11-09 | 2 | Redrew the full ER: added MEDIA, the missing PRACTICE attributes, `evidence`, and parent / variation role names. Added role names to the hand-drawable ER. Added the crow's-foot logical ER and one editable draw.io file with all three diagrams. | docs/er/* | Every table must appear in the diagram (Step 2 "Done when") |
+| 2026-11-09 | 1 | Wrote the data requirement specification | docs/data-spec.md | Graded rubric item, and the input the ER should trace to |
+| 2026-11-09 | 3 | Wrote the mapping, the normalization walkthrough and all functional dependencies | docs/normalization.md | Graded rubric item |
+| 2026-11-09 | 3 | Schema refinements: generated `norm_key`, UNIQUE `media.url`, `evidence` on `category_contra`, `start_date` NOT NULL, "variation" is not a type | docs/ARCHITECTURE.md (§6.2, ADR-011), docs/data-spec.md | Gaps found by the 3NF review |
+| 2026-11-09 | Gate A | Logged two safety-rule proposals for a team decision | AGENTS.md §7 (OQ5, OQ6) | Safety-rule meaning belongs to the team (§4.1, Large) |
 
 ## 7. Open Questions and Proposals
 Add new items at the bottom. Close an item by filling in the Answer and Date, but don't delete it.
 
 | # | Question / proposal | Raised | Owner | Answer | Date closed |
 |---|---|---|---|---|---|
-| OQ1 | Which ER diagram tool? | 2026-10-19 | Team | | |
+| OQ1 | Which ER diagram tool? | 2026-10-19 | Team | draw.io. The source is docs/er/yoga-er.drawio. | 2026-11-09 |
 | OQ2 | Streamlit or Flask? (Default: Streamlit) | 2026-10-19 | Team | | |
 | OQ3 | Deadline and the split of work between members | 2026-10-19 | Team | | |
 | OQ4 | Find a yoga teacher or physio reviewer for phase 2 | 2026-10-19 | Team | | |
+| OQ5 | **Proposal: close two gaps in the FR5 inheritance rule.** *Problem:* (a) step 3 checks only the practice's own categories, so a variation not tagged *inversion*, under a parent that is, escapes the category rule and can show as safe. (b) An inherited rule ends the search, so a parent's *caution* beats an *avoid* category rule on the child. *Options:* **A** keep FR5 as written. **B** step 3 also includes ancestors' categories, which fixes (a) only. **C** the practice's own rule still wins; otherwise take the worst of the nearest ancestor's rule and all category rules of the practice and its ancestors. *Recommendation:* **C**. It keeps the deliberate relaxing in ADR-004 (a wall-supported variation with its own rule), and only a rule written for that exact practice can relax a stricter one. *Affects:* FR5, ADR-004, `v_effective_contra`, the safety test matrix. | 2026-11-09 | Team | Option C accepted. Recorded as ADR-012. | 2026-11-09 |
+| OQ6 | **Proposal: stop calling "no rule found" safe.** *Problem:* US6 labels a practice *safe* when no rule matches. With a limited number of sourced rules, most practices will have no rule, and that only means none was found. *Options:* **A** keep *safe*. **B** rename the label *no known rule*, with one line explaining it. *Recommendation:* **B**, under project priority 1 (safety data is never silently wrong). *Affects:* US6, PRD §2, `v_user_practice_safety`, the UI text. | 2026-11-09 | Team | Option B accepted. Recorded as ADR-013. | 2026-11-09 |
 
 ## 8. Improvements Log (agent improvisations)
 Every time you go beyond or change the plan (section 4.1), log it here so the team can review it. This is where "whatever changes were made" is tracked.
@@ -135,6 +142,13 @@ Every time you go beyond or change the plan (section 4.1), log it here so the te
 | Date | Step | Size | What you changed | Why it's better | Docs updated |
 |---|---|---|---|---|---|
 | | | | *(none yet)* | | |
+| 2026-11-09 | 3 | Small | `media.url` is UNIQUE | Makes the image credit depend only on a key, which 3NF needs | ARCHITECTURE §6.2, data-spec |
+| 2026-11-09 | 1 | Small | Listed `source_type` as an ENUM and ordered `severity` from lowest to highest | Keeps publication kind separate from evidence strength, and lets `MAX(severity)` work | data-spec |
+| 2026-11-09 | 3 | Medium | `alias.norm_key` is a generated column | The value can't disagree with `alias_text` | ARCHITECTURE §6.2, ADR-011, data-spec |
+| 2026-11-09 | 3 | Medium | Added `evidence` to `category_contra` | FR4 requires it on both levels, and §6.2 had left it out | ARCHITECTURE §6.2, ADR-011, data-spec |
+| 2026-11-09 | 1 | Medium | `user_condition.start_date` is NOT NULL, defaulting to today | A NULL would silently deactivate a condition under FR6 | ARCHITECTURE §6.2, ADR-011, data-spec |
+| 2026-11-09 | 1 | Medium | "Variation" is not a `practice_type`; it is any row with a `parent_id` | Avoids storing one fact twice, and a kriya sub-type keeps its real type | ARCHITECTURE §6.2, ADR-011, data-spec |
+| 2026-11-09 | 2 | Medium | Every practice needs at least one category, enforced by a check query | Without a category, a practice can't be reached by category safety rules | data-spec BR7, WORKFLOW Step 6 |
 
 ## 9. How to explain things to the students
 - Use plain words first, then the technical term: *"a table that links two others (a **junction table**)"*.

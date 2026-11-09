@@ -6,7 +6,7 @@
 | **Course** | DBMS Experiential Learning (EL), batch of two |
 | **Version** | 1.0 (MVP scope) |
 | **Status** | Approved for build |
-| **Last updated** | 2026-10-19 |
+| **Last updated** | 2026-11-09 |
 | **Related docs** | [ARCHITECTURE.md](ARCHITECTURE.md) · [WORKFLOW.md](WORKFLOW.md) · [RESEARCH.md](RESEARCH.md) · [../AGENTS.md](../AGENTS.md) |
 
 ---
@@ -24,7 +24,7 @@ Existing tools either:
 The open datasets are small and mostly don't say where their facts come from.
 
 ## 2. Product vision
-A yoga knowledge base where **every safety claim is structured, sourced and queryable**. A user records their health conditions once, and the system filters about 500 practices into three groups: *safe*, *needs modification*, or *avoid*. It shows the reason and the source each time.
+A yoga knowledge base where **every safety claim is structured, sourced and queryable**. A user records their health conditions once, and the system labels about 500 practices *avoid*, *modify*, *caution*, or *no known rule*. It shows the reason and the source for every rule it finds. *No known rule* means no sourced rule was found, and it is not a promise that the practice is safe.
 
 **One-line pitch:** *"Not the biggest pose list, but the safest one to search."*
 
@@ -70,7 +70,7 @@ Priority uses **MoSCoW**: Must, Should, Could, Won't (this release).
 | US3 | As a practitioner, I want to **filter by category, difficulty, body part and benefit**. | Filters can be combined (AND). The result count is shown. |
 | US4 | As a practitioner, I want a **detail page** for each practice. | Shows names in 3 languages, type, difficulty, description, categories, body parts, benefits, steps (from MongoDB), primary image with credit, contraindications with severity and source, and the parent and child variations. |
 | US5 | As a practitioner, I want to **record my health conditions** with optional start and end dates. | I can add or remove conditions from the condition list. A condition whose end date has passed becomes inactive automatically. |
-| US6 | As a practitioner, I want a **"safe for me" filter**. | Every practice is labelled *safe*, *caution*, *modify* or *avoid* against my active conditions. *Avoid* practices can be hidden. Each label shows the condition, the note and the source. |
+| US6 | As a practitioner, I want a **"safe for me" filter**. | Every practice is labelled *no known rule*, *caution*, *modify* or *avoid* against my active conditions, and *no known rule* carries a line explaining that it does not mean safe. *Avoid* practices can be hidden. Each label shows the condition, the note and the source. |
 | US7 | As a practitioner, I want **favourites**. | I can add and remove a favourite and see the list. Adding the same favourite twice is blocked by the database. |
 | US8 | As a practitioner, I want to **log a practice session**. | A session has a date, items (practice, hold seconds, felt 1–5, pain yes/no) and notes. It's saved to MongoDB, and I can see my past sessions. |
 | US9 | As a curator, I want **admin create/read/update/delete (CRUD)** for practices, conditions, contraindications and sources. | A contraindication can't be saved without a source (enforced by the database). |
@@ -99,7 +99,7 @@ Everything under Non-goals in section 3.
 | FR2 | The system stores alternate spellings (aliases) with a normalized search key. | US2 |
 | FR3 | The system links practices to categories, body parts (with an action) and benefits, all many-to-many. | US3 |
 | FR4 | The system stores contraindications at two levels: per practice and per category. Each has a severity (avoid / modify / caution), a note, an evidence level and a **mandatory source**. | US6, US9 |
-| FR5 | **Effective contraindication rule** (the key business rule). For a practice P and a condition C, decide in this order: (1) P's own rule; else (2) the nearest ancestor's own rule (variations inherit); else (3) the highest-severity category rule among P's categories; else *no rule*. | US6 |
+| FR5 | **Effective contraindication rule** (the key business rule). For a practice P and a condition C, decide in this order: (1) if P has its own rule, use it; otherwise (2) take the highest severity among the nearest ancestor's own rule and all category rules for the categories of P and of its ancestors; if there are none, (3) *no known rule*. Only a rule written for that exact practice can relax a stricter one. | US6 |
 | FR6 | A user's active conditions are those where `start_date ≤ today` and (`end_date` is empty or `end_date ≥ today`). | US5, US6 |
 | FR7 | Instruction content (steps, tips, mistakes, breathing cue) is stored per practice per language in MongoDB. | US4 |
 | FR8 | Practice sessions are stored as documents in MongoDB, referring to practices by `practice_id`. | US8 |
@@ -162,7 +162,7 @@ The full specification lives in [ARCHITECTURE.md §6](ARCHITECTURE.md#6-data-arc
 ## 12. Risks
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Wrong contraindication shown as "safe" | High (user safety) | Mandatory sources; category rules as a safety net; disclaimer; a phase 2 reviewer |
+| A real contraindication is missed or shown too leniently | High (user safety) | Mandatory sources; category rules as a safety net; disclaimer; a phase 2 reviewer |
 | Can't reach about 500 entries | Medium (grading) | Count variations honestly; add pranayama, mudra, kriya; the prof accepts some flexibility if features are strong |
 | Image licence violations | Medium | NOT NULL author and licence; only CC0, CC BY and CC BY-SA |
 | Two databases drift out of sync | Medium | No hard deletes; a consistency-check script |
@@ -179,7 +179,7 @@ The full specification lives in [ARCHITECTURE.md §6](ARCHITECTURE.md#6-data-arc
 ## 14. Open questions
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ1 | Which ER diagram tool to use? | Team | Open (to discuss before step 2) |
+| OQ1 | Which ER diagram tool to use? | Team | Closed 2026-11-09: draw.io |
 | OQ2 | Streamlit or Flask for the UI? (Default: Streamlit) | Team | Open (decide in step 0) |
 | OQ3 | Deadline and the split of work between the two members | Team | Open |
 | OQ4 | Find a yoga teacher or physio reviewer for phase 2 | Team | Open |
@@ -188,3 +188,5 @@ The full specification lives in [ARCHITECTURE.md §6](ARCHITECTURE.md#6-data-arc
 | Date | Version | Change |
 |---|---|---|
 | 2026-10-19 | 1.0 | First PRD, built from research (2026-10-15) and architecture draft v0.3 (2026-10-18). |
+| 2026-11-09 | 1.0 | OQ1 closed. No change to requirements. |
+| 2026-11-09 | 1.1 | FR5 tightened (ADR-012). The *safe* label is renamed *no known rule* (ADR-013). |

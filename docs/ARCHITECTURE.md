@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Version** | 1.0 (MVP) |
-| **Last updated** | 2026-10-19 |
+| **Last updated** | 2026-11-09 |
 | **Method** | Sections follow the **arc42** template. Diagrams follow the **C4 model** (Context → Container → Component). Decisions are recorded as **ADRs** (Architecture Decision Records). These are the standard methods used to document production systems. |
 | **Related** | [PRD.md](PRD.md) · [WORKFLOW.md](WORKFLOW.md) · [RESEARCH.md](RESEARCH.md) |
 
@@ -161,8 +161,8 @@ Naming: `snake_case`, singular table names, surrogate `id` keys, `<table>_id` fo
 **Core**
 | Table | Columns | Keys and constraints |
 |---|---|---|
-| `practice` | id, slug, name_en, name_sa, name_kn, type, parent_id, difficulty, description, created_at, updated_at | PK id · UQ slug · FK parent_id → practice(id) · CHECK difficulty 1–3 · CHECK parent_id ≠ id · type is the ENUM `practice_type` |
-| `alias` | id, practice_id, alias_text, norm_key | PK id · FK practice_id · UQ (practice_id, norm_key) · index on norm_key |
+| `practice` | id, slug, name_en, name_sa, name_kn, type, parent_id, difficulty, description, created_at, updated_at | PK id · UQ slug · FK parent_id → practice(id) · CHECK difficulty 1–3 · CHECK parent_id ≠ id · type is the ENUM `practice_type` (asana / pranayama / mudra / bandha / kriya / meditation; a variation is any row with a parent_id) |
+| `alias` | id, practice_id, alias_text, norm_key | PK id · FK practice_id · UQ (practice_id, norm_key) · index on norm_key · norm_key is a generated column calculated from alias_text |
 
 **Describing practices** (lookup + junction pairs)
 | Table | Columns | Keys and constraints |
@@ -179,19 +179,19 @@ Naming: `snake_case`, singular table names, surrogate `id` keys, `<table>_id` fo
 |---|---|---|
 | `condition` | id, name, cond_type | PK id · UQ name · cond_type is the ENUM (chronic / injury / temporary) |
 | `contra` | practice_id, condition_id, severity, note, evidence, source_id | PK (practice_id, condition_id) · **source_id NOT NULL** · severity ENUM (avoid / modify / caution) · evidence ENUM (study / guideline / expert / traditional) |
-| `category_contra` | category_id, condition_id, severity, note, source_id | PK (category_id, condition_id) · **source_id NOT NULL** |
+| `category_contra` | category_id, condition_id, severity, note, evidence, source_id | PK (category_id, condition_id) · **source_id NOT NULL** · severity and evidence ENUMs as in `contra` |
 | `source` | id, title, author, year, url, src_type, licence | PK id |
 
 **Media**
 | Table | Columns | Keys and constraints |
 |---|---|---|
-| `media` | id, practice_id, url, alt_text, author, licence, source_url, is_primary | PK id · **author, licence NOT NULL** · licence CHECK in (CC0, CC-BY, CC-BY-SA) · partial UQ (practice_id) WHERE is_primary |
+| `media` | id, practice_id, url, alt_text, author, licence, source_url, is_primary | PK id · UQ url · **author, licence NOT NULL** · licence CHECK in (CC0, CC-BY, CC-BY-SA) · partial UQ (practice_id) WHERE is_primary |
 
 **User** (one row in the MVP)
 | Table | Columns | Keys and constraints |
 |---|---|---|
 | `app_user` | id, name, created_at | PK id |
-| `user_condition` | user_id, condition_id, start_date, end_date | PK (user_id, condition_id) · CHECK end_date ≥ start_date |
+| `user_condition` | user_id, condition_id, start_date, end_date | PK (user_id, condition_id) · start_date NOT NULL DEFAULT CURRENT_DATE · CHECK end_date ≥ start_date |
 | `favourite` | user_id, practice_id, added_at | PK (user_id, practice_id) |
 
 **Relationship summary (feeds the ER diagram in step 2)**
@@ -215,9 +215,9 @@ Naming: `snake_case`, singular table names, surrogate `id` keys, `<table>_id` fo
 | View | Purpose |
 |---|---|
 | `v_practice_lineage` | Recursive CTE: each practice with its chain of ancestors and their depth (depth limit 10). |
-| `v_effective_contra` | The FR5 rule: own rule → nearest ancestor's rule → highest-severity category rule. One row per (practice, condition). |
+| `v_effective_contra` | The FR5 rule (ADR-012): own rule; otherwise the highest severity among the nearest ancestor's rule and the category rules of the practice and its ancestors. One row per (practice, condition). |
 | `v_user_active_condition` | A user's conditions that are active today. |
-| `v_user_practice_safety` | Each practice labelled safe / caution / modify / avoid for a user (the *worst* label across their active conditions). |
+| `v_user_practice_safety` | Each practice labelled no known rule / caution / modify / avoid for a user (the *worst* label across their active conditions). |
 | `v_practice_count` | Counts by type plus the grand total (proves the ~500). |
 
 ### 6.4 Document model (MongoDB, 2 collections)
@@ -267,7 +267,7 @@ sequenceDiagram
     S->>PG: SELECT ... FROM v_user_practice_safety WHERE user_id = %s ...
     PG-->>S: rows (practice, label, condition, note, source)
     S-->>UI: grouped results + disclaimer
-    UI-->>U: list with safe / caution / modify / avoid badges
+    UI-->>U: list with no known rule / caution / modify / avoid badges
 ```
 
 ### 7.2 Practice detail (the SQL + NoSQL join)
@@ -356,13 +356,17 @@ Format: *Context → Decision → Consequences.* New decisions are appended here
 | 001 | PostgreSQL for the relational store | Accepted 2026-10-18 |
 | 002 | MongoDB for content and logs (polyglot) | Accepted 2026-10-15 |
 | 003 | Modular monolith in Python, no ORM | Accepted 2026-10-19 |
-| 004 | Variations inherit contraindications | Accepted 2026-10-18 |
+| 004 | Variations inherit contraindications | Accepted 2026-10-18; resolution order amended by ADR-012 |
 | 005 | One `practice` table for all types, no detail tables in the MVP | Accepted 2026-10-18 |
 | 006 | Kannada names only, as columns | Accepted 2026-10-18 |
 | 007 | Single user in the MVP | Accepted 2026-10-18 |
 | 008 | Mandatory source instead of a reviewer | Accepted 2026-10-18 |
 | 009 | Images as licence-checked URLs, never BLOBs | Accepted 2026-10-15 |
 | 010 | MVP first, innovations after the freeze | Accepted 2026-10-19 |
+| 011 | Schema refinements from the 3NF review | Accepted 2026-11-09, subject to Gate A |
+| 012 | Inherited safety rules can only be stricter | Accepted 2026-11-09 (OQ5) |
+| 013 | "No known rule" replaces the "safe" label | Accepted 2026-11-09 (OQ6) |
+| 014 | Streamlit for the UI | Accepted 2026-11-09 (OQ2) |
 
 **ADR-001: PostgreSQL.** *Context:* we need strong constraints, recursive queries, enums and a free cloud host. *Decision:* PostgreSQL. *Consequences:* we get `pg_trgm`, `unaccent`, recursive CTEs, partial indexes and row-level security for phase 2. The SQL dialect differs slightly from MySQL.
 
@@ -383,6 +387,14 @@ Format: *Context → Decision → Consequences.* New decisions are appended here
 **ADR-009: Images as URLs.** *Decision:* store a URL or path plus author and licence (NOT NULL). Only CC0, CC BY and CC BY-SA. *Consequences:* a small database, legal reuse, credits are always available.
 
 **ADR-010: MVP first.** *Decision:* build and tag `v1.0-mvp` before any phase 2 innovation. *Consequences:* there is always a working, demo-able version saved.
+
+**ADR-011: Schema refinements from the 3NF review.** *Context:* writing the data spec and the functional dependencies exposed gaps in §6.2. *Decision:* `alias.norm_key` is a generated column; `media.url` is UNIQUE; `category_contra` gains `evidence`, as FR4 requires; `user_condition.start_date` is NOT NULL with a default of today, because a NULL would silently deactivate a condition under FR6; "variation" is not a `practice_type` value. *Consequences:* the schema is in 3NF, and `alias` is the one relation that is not BCNF, which is documented in normalization.md.
+
+**ADR-012: Inherited safety rules can only be stricter.** *Context:* under ADR-004's order, a variation not tagged with its parent's category escaped the category rule, and a parent's *caution* could override an *avoid* category rule on the child. *Decision:* a practice's own rule wins. Otherwise take the highest severity among the nearest ancestor's own rule and all category rules for the practice and its ancestors. *Consequences:* a slightly longer view. A relaxed result still needs a rule written for that exact practice, so the wall-supported example in ADR-004 still works.
+
+**ADR-013: "No known rule" replaces "safe".** *Context:* most practice and condition pairs will have no sourced rule, which only means none was found. *Decision:* label those pairs *no known rule*, with a line explaining that it does not mean safe. *Consequences:* the app makes no safety claim that the data can't support. The feature keeps its "safe for me" name.
+
+**ADR-014: Streamlit for the UI.** *Context:* OQ2 had Streamlit as the default and Flask as the fallback. *Decision:* Streamlit. *Consequences:* a pure-Python UI with less to build, and less control over page layout than Flask.
 
 ## 13. Phase 2 architecture backlog
 These don't change the MVP tables. Each one is additive.

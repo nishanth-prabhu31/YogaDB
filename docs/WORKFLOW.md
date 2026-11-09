@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-19 |
+| **Last updated** | 2026-11-09 |
 | **Approach** | Build a working **MVP** first, freeze it (`v1.0-mvp`), then add innovations one at a time. Each step ends with a **gate**: the team reviews the step before the next one starts. |
 | **Live progress** | See the Status Board in [../AGENTS.md](../AGENTS.md#5-status-board). This file holds the *plan*, and AGENTS.md holds *where we are*. |
 
@@ -110,7 +110,7 @@ Every step is laid out the same way:
   7. **Contraindications:** category rules first (biggest coverage), then pose-level rules, each with a source.
   8. **Images:** Wikimedia Commons / yoga-api CC0, with author and licence recorded.
   9. **Mongo content:** English steps for base asanas.
-  10. Run `check_consistency.py` and `SELECT * FROM v_practice_count`.
+  10. Run `check_consistency.py` and `SELECT * FROM v_practice_count`. The script must also report 0 practices with no category and 0 loops in the variation tree (data-spec BR7, BR8).
 - **Deliverables:** `scripts/import_*.py`, `scripts/seed.py`, `data/curated/*`, `scripts/check_consistency.py`.
 - **Done when:** the grand total is ≥ 450, there are 0 orphaned Mongo references, every contra row has a source, and every image has a licence.
 - **Learn:** ETL (extract, transform, load), dedupe, load order under FK constraints, data provenance.
@@ -143,7 +143,7 @@ Build in this order. Each one is a small, demo-able increment:
 
 ### Step 9: Testing and verification
 - **Tasks:**
-  1. **Safety test matrix:** at least 10 cases covering own rule, inherited rule, category rule, override that relaxes a rule, highest-severity tie-break, inactive (expired) condition, no rule.
+  1. **Safety test matrix:** at least 12 cases covering own rule, inherited rule, category rule, category rule reached through an ancestor's category, inherited *caution* against category *avoid* (the worst wins), own rule that relaxes a stricter one, highest-severity tie-break, inactive (expired) condition, and no known rule.
   2. Constraint tests (each one should fail on purpose).
   3. Injection tests (SQL `' OR 1=1 --` and Mongo `{"$ne": null}`).
   4. Consistency script is clean.
